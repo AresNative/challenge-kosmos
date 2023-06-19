@@ -143,8 +143,9 @@ const Component = ({
   isSelected = false,
   updateEnd,
 }) => {
-  console.log({
-    updateMoveable,
+  const ref = useRef();
+
+  const [nodoReferencia, setNodoReferencia] = useState({
     top,
     left,
     width,
@@ -152,10 +153,95 @@ const Component = ({
     index,
     thumbnailUrl,
     id,
-    setSelected,
-    updateEnd,
   });
-  const ref = useRef();
+
+  let parent = document.getElementById("parent");
+  let parentBounds = parent?.getBoundingClientRect();
+
+  const onResize = async (e) => {
+    let newWidth = e.width;
+    let newHeight = e.height;
+
+    /* Este código verifica si el componente redimensionado excederá los límites de su elemento
+    principal. Calcula la posición máxima de los bordes superior e izquierdo del componente después
+    de cambiar el tamaño y, si alguna de estas posiciones supera la altura o el ancho del elemento
+    principal, ajusta la nueva altura o anchura para que se ajuste a los límites del elemento
+    principal. Esto garantiza que el componente permanezca totalmente visible dentro de su elemento
+    principal y no se desborde fuera de él. */
+    const positionMaxTop = top + newHeight;
+    const positionMaxLeft = left + newWidth;
+
+    if (positionMaxTop > parentBounds?.height)
+      newHeight = parentBounds?.height - top;
+    if (positionMaxLeft > parentBounds?.width)
+      newWidth = parentBounds?.width - left;
+
+    /* `updateMoveable` es una función que actualiza las propiedades de un componente móvil con una ID
+    específica. En este caso, se llama con el `id` del componente que se está redimensionando y un
+    objeto que contiene las propiedades actualizadas `top`, `left`, `width`, `height` y
+    `thumbnailUrl`. */
+    updateMoveable(id, {
+      top,
+      left,
+      width: newWidth,
+      height: newHeight,
+      thumbnailUrl,
+    });
+
+    const beforeTranslate = e.drag.beforeTranslate;
+
+    e.target.style.width = `${e.width}px`;
+    e.target.style.height = `${e.height}px`;
+    e.target.style.transform = `translate(${beforeTranslate[0]}px, ${beforeTranslate[1]}px)`;
+
+    setNodoReferencia({
+      ...nodoReferencia,
+      translateX: beforeTranslate[0],
+      translateY: beforeTranslate[1],
+      top: top + beforeTranslate[1] < 0 ? 0 : top + beforeTranslate[1],
+      left: left + beforeTranslate[0] < 0 ? 0 : left + beforeTranslate[0],
+    });
+  };
+
+  const onResizeEnd = async (e) => {
+    let newWidth = e.lastEvent?.rect.width;
+    let newHeight = e.lastEvent?.rect.height;
+
+    /* Este código verifica si el componente redimensionado excederá los límites de su elemento
+    principal. Calcula la posición máxima de los bordes superior e izquierdo del componente después
+    de cambiar el tamaño y, si alguna de estas posiciones supera la altura o el ancho del elemento
+    principal, ajusta la nueva altura o anchura para que se ajuste a los límites del elemento
+    principal. Esto garantiza que el componente permanezca totalmente visible dentro de su elemento
+    principal y no se desborde fuera de él. */
+    const positionMaxTop = top + newHeight;
+    const positionMaxLeft = left + newWidth;
+
+    if (positionMaxTop > parentBounds?.height)
+      newHeight = parentBounds?.height - top;
+    if (positionMaxLeft > parentBounds?.width)
+      newWidth = parentBounds?.width - left;
+
+    /* Este código actualiza la posición y el tamaño de un componente móvil después de haberlo
+    redimensionado usando la biblioteca `Moveable`. */
+    const { lastEvent } = e;
+    const { drag } = lastEvent;
+    const { beforeTranslate } = drag;
+
+    const absoluteTop = top + beforeTranslate[1];
+    const absoluteLeft = left + beforeTranslate[0];
+
+    updateMoveable(
+      id,
+      {
+        top: absoluteTop,
+        left: absoluteLeft,
+        width: newWidth,
+        height: newHeight,
+        thumbnailUrl,
+      },
+      true
+    );
+  };
 
   return (
     <div>
@@ -198,20 +284,8 @@ const Component = ({
             thumbnailUrl,
           });
         }}
-        onResize={(e) => {
-          /*
-        Se reemplazo la funcion proporcionada por la funcionalidad que nos da la misma libreria
-          
-        Este código está actualizando los estilos CSS del elemento de destino cuyo tamaño cambia el
-         componente Moveable. Establece el ancho y el alto del elemento en los nuevos valores de
-         ancho y alto proporcionados por el evento `onResize`, y establece la propiedad de
-         transformación del elemento en el nuevo valor de transformación proporcionado por la
-         propiedad `e.drag.transform`. Esto garantiza que el elemento cambie de tamaño y se coloque
-         correctamente en función de la interacción del usuario con el componente movible. */
-          e.target.style.width = `${e.width}px`;
-          e.target.style.height = `${e.height}px`;
-          e.target.style.transform = e.drag.transform;
-        }}
+        onResize={onResize}
+        onResizeEnd={onResizeEnd}
         renderDirections={["nw", "n", "ne", "w", "e", "sw", "s", "se"]}
         padding={{ left: 0, top: 0, right: 0, bottom: 0 }}
       />
