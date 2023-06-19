@@ -256,7 +256,6 @@ const Component = ({
           width: width,
           height: height,
           background: `url(${thumbnailUrl})`,
-          backgroundSize: "cover",
           overflow: "hidden",
         }}
         onClick={() => setSelected(id)}
