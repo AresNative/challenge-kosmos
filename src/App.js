@@ -2,14 +2,45 @@ import React, { useRef, useState, useEffect } from "react";
 import Moveable from "react-moveable";
 import axios from "axios";
 import "./styles.css";
+const API_URL = "https://jsonplaceholder.typicode.com/photos";
+
 const App = () => {
   const [moveableComponents, setMoveableComponents] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [photos, setPhotos] = useState([]);
+  /* `useEffect` es un gancho en React que le permite realizar efectos secundarios en componentes
+  funcionales. En este caso, está obteniendo datos de una API usando Axios y configurando el estado
+  de las "fotos" con los datos mapeados. El segundo argumento `[]` significa que este efecto solo se
+  ejecutará una vez, cuando se monte el componente. */
+  useEffect(() => {
+    const fetchPhotos = async () => {
+      try {
+        const response = await axios.get(API_URL);
+        const photoInfo = response.data;
 
+        // Mapea los datos para crear la estructura deseada |photo|
+        const mappedData = photoInfo.map((photo) => ({
+          albumId: photo.albumId,
+          id: photo.id,
+          thumbnailUrl: photo.thumbnailUrl,
+          title: photo.title,
+          url: photo.url,
+        }));
+
+        setPhotos(mappedData);
+      } catch (error) {
+        console.error("Error fetching photos:", error);
+      }
+    };
+
+    fetchPhotos();
+  }, []);
+
+  /**
+   * Esta función agrega un nuevo componente móvil con propiedades aleatorias y una imagen de una
+   * lista.
+   */
   const addMoveable = () => {
-    // Create a new moveable component and add it to the array
-    const COLORS = ["red", "blue", "yellow", "green", "purple"];
-
     setMoveableComponents([
       ...moveableComponents,
       {
@@ -18,12 +49,24 @@ const App = () => {
         left: 0,
         width: 100,
         height: 100,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        // Asigna una imagen aleatoria de la lista de fotos
+        ...photos[Math.floor(Math.random() * photos.length)],
         updateEnd: true,
       },
     ]);
   };
 
+  /**
+   * Esta función actualiza un componente móvil en una matriz de componentes móviles.
+   * @param id - El id del componente móvil que necesita ser actualizado.
+   * @param newComponent - `newComponent` es un objeto que contiene las propiedades actualizadas para
+   * un componente móvil específico. Estas propiedades reemplazarán las propiedades existentes del
+   * componente móvil con el 'id' correspondiente.
+   * @param [updateEnd=false] - `updateEnd` es un parámetro booleano que es opcional y por defecto es
+   * `falso`. Se utiliza para indicar si el componente móvil ha terminado o no de actualizarse. Si
+   * `updateEnd` se establece en `true`, puede desencadenar acciones o comportamientos adicionales en
+   * el código que dependen del móvil.
+   */
   const updateMoveable = (id, newComponent, updateEnd = false) => {
     const updatedMoveables = moveableComponents.map((moveable, i) => {
       if (moveable.id === id) {
@@ -34,48 +77,52 @@ const App = () => {
     setMoveableComponents(updatedMoveables);
   };
 
-  const handleResizeStart = (index, e) => {
-    console.log("e", e.direction);
-    // Check if the resize is coming from the left handle
-    const [handlePosX, handlePosY] = e.direction;
-    // 0 => center
-    // -1 => top or left
-    // 1 => bottom or right
-
-    // -1, -1
-    // -1, 0
-    // -1, 1
-    if (handlePosX === -1) {
-      console.log("width", moveableComponents, e);
-      // Save the initial left and width values of the moveable component
-      const initialLeft = e.left;
-      const initialWidth = e.width;
-
-      // Set up the onResize event handler to update the left value based on the change in width
-    }
+  /**
+   * Esta función elimina un componente móvil de una matriz en función de su ID y actualiza el estado
+   * con la matriz filtrada.
+   * @param id - El ID del componente móvil que debe eliminarse de la matriz `moveableComponents`. La
+   * función filtra la matriz para eliminar el elemento con el ID coincidente y actualiza el estado con
+   * la matriz filtrada.
+   */
+  const deleteMoveable = (id) => {
+    // Filtrar el array y eliminar el elemento con el ID correspondiente
+    const updatedMoveables = moveableComponents.filter(
+      (moveable) => moveable.id !== id
+    );
+    // Actualizar el estado con el array filtrado
+    setMoveableComponents(updatedMoveables);
   };
-
   return (
     <main style={{ height: "100vh", width: "100vw" }}>
-      <button onClick={addMoveable}>Add Moveable1</button>
+      <button className="button-add" onClick={addMoveable}>
+        Add Moveable1
+      </button>
       <div
         id="parent"
         style={{
           position: "relative",
-          background: "black",
+          background: "#ecf0f3",
           height: "80vh",
           width: "80vw",
+          overflow: "hidden",
         }}
       >
         {moveableComponents.map((item, index) => (
-          <Component
-            {...item}
-            key={index}
-            updateMoveable={updateMoveable}
-            handleResizeStart={handleResizeStart}
-            setSelected={setSelected}
-            isSelected={selected === item.id}
-          />
+          <>
+            <button
+              className="button-delete"
+              onClick={() => deleteMoveable(item.id)}
+            >
+              Eliminar
+            </button>
+            <Component
+              {...item}
+              key={index}
+              updateMoveable={updateMoveable}
+              setSelected={setSelected}
+              isSelected={selected === item.id}
+            />
+          </>
         ))}
       </div>
     </main>
@@ -83,12 +130,6 @@ const App = () => {
 };
 
 export default App;
-
-const API_URL = "https://jsonplaceholder.typicode.com/photos";
-export const getPhotos = async () => {
-  const photoInfo = await axios.get(API_URL);
-  return photoInfo.data;
-};
 const Component = ({
   updateMoveable,
   top,
@@ -96,137 +137,82 @@ const Component = ({
   width,
   height,
   index,
-  color,
+  thumbnailUrl,
   id,
   setSelected,
   isSelected = false,
   updateEnd,
 }) => {
-  const ref = useRef();
-  const [nodoReferencia, setNodoReferencia] = useState({
+  console.log({
+    updateMoveable,
     top,
     left,
     width,
     height,
     index,
-    color,
+    thumbnailUrl,
     id,
+    setSelected,
+    updateEnd,
   });
-
-  let parent = document.getElementById("parent");
-  let parentBounds = parent?.getBoundingClientRect();
-
-  const onResize = async (e) => {
-    // ACTUALIZAR ALTO Y ANCHO
-    let newWidth = e.width;
-    let newHeight = e.height;
-
-    const positionMaxTop = top + newHeight;
-    const positionMaxLeft = left + newWidth;
-
-    if (positionMaxTop > parentBounds?.height)
-      newHeight = parentBounds?.height - top;
-    if (positionMaxLeft > parentBounds?.width)
-      newWidth = parentBounds?.width - left;
-
-    updateMoveable(id, {
-      top,
-      left,
-      width: newWidth,
-      height: newHeight,
-      color,
-    });
-
-    // ACTUALIZAR NODO REFERENCIA
-    const beforeTranslate = e.drag.beforeTranslate;
-
-    ref.current.style.width = `${e.width}px`;
-    ref.current.style.height = `${e.height}px`;
-
-    let translateX = beforeTranslate[0];
-    let translateY = beforeTranslate[1];
-
-    ref.current.style.transform = `translate(${translateX}px, ${translateY}px)`;
-
-    setNodoReferencia({
-      ...nodoReferencia,
-      translateX,
-      translateY,
-      top: top + translateY < 0 ? 0 : top + translateY,
-      left: left + translateX < 0 ? 0 : left + translateX,
-    });
-  };
-
-  const onResizeEnd = async (e) => {
-    let newWidth = e.lastEvent?.width;
-    let newHeight = e.lastEvent?.height;
-
-    const positionMaxTop = top + newHeight;
-    const positionMaxLeft = left + newWidth;
-
-    if (positionMaxTop > parentBounds?.height)
-      newHeight = parentBounds?.height - top;
-    if (positionMaxLeft > parentBounds?.width)
-      newWidth = parentBounds?.width - left;
-
-    const { lastEvent } = e;
-    const { drag } = lastEvent;
-    const { beforeTranslate } = drag;
-
-    const absoluteTop = top + beforeTranslate[1];
-    const absoluteLeft = left + beforeTranslate[0];
-
-    updateMoveable(
-      id,
-      {
-        top: absoluteTop,
-        left: absoluteLeft,
-        width: newWidth,
-        height: newHeight,
-        color,
-      },
-      true
-    );
-  };
+  const ref = useRef();
 
   return (
-    <div className="limit_box">
+    <div>
       <div
         ref={ref}
-        className="draggable"
         id={"component-" + id}
+        className="draggable"
         style={{
-          position: "absolute",
+          position: "relative",
           top: top,
           left: left,
           width: width,
           height: height,
-          background: color,
+          background: `url(${thumbnailUrl})`,
+          backgroundSize: "cover",
+          overflow: "hidden",
         }}
         onClick={() => setSelected(id)}
       />
 
       <Moveable
         target={isSelected && ref.current}
-        resizable
+        snappable={true}
+        resizable={true}
+        keepRatio={false}
+        throttleResize={1}
         draggable
+        edge={false}
+        zoom={1}
+        origin={false}
         onDrag={(e) => {
+          /* `updateMoveable` es una función que se pasa como accesorio al componente `Component`. Se
+          usa para actualizar la posición y el tamaño del componente cuando se arrastra o cambia de
+          tamaño usando la biblioteca `Moveable`. */
           updateMoveable(id, {
             top: e.top,
             left: e.left,
             width,
             height,
-            color,
+            thumbnailUrl,
           });
         }}
-        onResize={onResize}
-        onResizeEnd={onResizeEnd}
-        keepRatio={false}
-        throttleResize={1}
+        onResize={(e) => {
+          /*
+        Se reemplazo la funcion proporcionada por la funcionalidad que nos da la misma libreria
+          
+        Este código está actualizando los estilos CSS del elemento de destino cuyo tamaño cambia el
+         componente Moveable. Establece el ancho y el alto del elemento en los nuevos valores de
+         ancho y alto proporcionados por el evento `onResize`, y establece la propiedad de
+         transformación del elemento en el nuevo valor de transformación proporcionado por la
+         propiedad `e.drag.transform`. Esto garantiza que el elemento cambie de tamaño y se coloque
+         correctamente en función de la interacción del usuario con el componente movible. */
+          e.target.style.width = `${e.width}px`;
+          e.target.style.height = `${e.height}px`;
+          e.target.style.transform = e.drag.transform;
+        }}
         renderDirections={["nw", "n", "ne", "w", "e", "sw", "s", "se"]}
-        edge={false}
-        zoom={1}
-        origin={false}
         padding={{ left: 0, top: 0, right: 0, bottom: 0 }}
       />
     </div>

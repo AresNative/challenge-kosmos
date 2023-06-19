@@ -2,6 +2,9 @@
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
+  background-color: #ecf0f3;
+  box-shadow: 10px 10px 10px #d1d9e6, -10px -10px 10px #f9f9f9;
+  border-radius: 10px;
 }
 .title {
   font-family: sans-serif;
@@ -31,4 +34,45 @@
 .limit_box{
   height: 80vh;
   width: 80vw;
+}
+
+.draggable{ 
+  border-radius: 10px;
+}
+
+.button-add{
+  background-color: #4CAF50;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+.button-add:hover {
+  background-color: #45a049;
+}
+
+.button-add:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+}
+.button-delete {
+  background-color: #ff0000;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 3rem;
+}
+
+.button-delete:hover {
+  background-color: #e60000;
+}
+
+.button-delete:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 0, 0, 0.3);
 }
